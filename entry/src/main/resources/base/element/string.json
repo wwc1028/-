@@ -10,7 +10,19 @@
     },
     {
       "name": "EntryAbility_label",
-      "value": "label"
+      "value": "待办事项"
+    },
+    {
+      "name": "EntryFormAbility_label",
+      "value": "服务卡片"
+    },
+    {
+      "name": "EntryFormAbility_desc",
+      "value": "This is a service widget."
+    },
+    {
+      "name": "widget_desc",
+      "value": "This is a service widget."
     }
   ]
 }
