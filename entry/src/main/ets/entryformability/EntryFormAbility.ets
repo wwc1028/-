@@ -9,7 +9,7 @@ export default class EntryFormAbility extends FormExtensionAbility {
   onAddForm(want: Want) {
     hilog.info(DOMAIN, TAG, 'onAddForm');
     const formData: Record<string, string> = {
-      'cardTitle': 'Hello World',
+      'cardTitle': '你好',
       'cardHint': '点击打开元服务'
     };
     return formBindingData.createFormBindingData(formData);

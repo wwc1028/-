@@ -3,7 +3,7 @@ let storage = new LocalStorage();
 @Entry(storage)
 @Component
 struct WidgetCard {
-  @LocalStorageProp('cardTitle') cardTitle: string = 'Hello World';
+  @LocalStorageProp('cardTitle') cardTitle: string = '你好';
   @LocalStorageProp('cardHint') cardHint: string = '点击打开元服务';
 
   build() {
