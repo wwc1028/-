@@ -16,7 +16,8 @@
         "2*2"
       ],
       "defaultDimension": "2*2",
-      "updateEnabled": false
+      "updateEnabled": true,
+      "updateDuration": 1
     }
   ]
 }

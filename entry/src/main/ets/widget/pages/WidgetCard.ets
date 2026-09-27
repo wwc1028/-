@@ -30,7 +30,17 @@ struct WidgetCard {
       action: 'router',
       abilityName: 'EntryAbility',
       params: {
-        message: 'fromCard'
+        target: 'main'
+      }
+    });
+  }
+
+  private openAddPage() {
+    postCardAction(this, {
+      action: 'router',
+      abilityName: 'EntryAbility',
+      params: {
+        target: 'add'
       }
     });
   }
@@ -50,8 +60,10 @@ struct WidgetCard {
         Text('添加 ›')
           .fontSize(12)
           .fontColor('#007DFF')
+          .padding({ left: 8, top: 4, bottom: 4 })
+          .hitTestBehavior(HitTestMode.Block)
           .onClick(() => {
-            this.openApp();
+            this.openAddPage();
           })
       }
       .width('100%')
@@ -60,57 +72,48 @@ struct WidgetCard {
         Column({ space: 6 }) {
           if (this.todo0Text !== '') {
             Row({ space: 6 }) {
-              Checkbox()
-                .select(this.todo0Done === '1')
-                .width(16)
-                .height(16)
-                .selectedColor('#007DFF')
               Text(this.todo0Text)
                 .fontSize(13)
-                .fontColor('#333333')
+                .fontColor(this.todo0Done === '1' ? Color.Grey : '#333333')
+                .decoration({ type: this.todo0Done === '1' ? TextDecorationType.LineThrough : TextDecorationType.None })
                 .maxLines(1)
                 .textOverflow({ overflow: TextOverflow.Ellipsis })
                 .layoutWeight(1)
             }
             .width('100%')
+            .hitTestBehavior(HitTestMode.Block)
             .onClick(() => {
               this.toggleCard(this.todo0Id);
             })
           }
           if (this.todo1Text !== '') {
             Row({ space: 6 }) {
-              Checkbox()
-                .select(this.todo1Done === '1')
-                .width(16)
-                .height(16)
-                .selectedColor('#007DFF')
               Text(this.todo1Text)
                 .fontSize(13)
-                .fontColor('#333333')
+                .fontColor(this.todo1Done === '1' ? Color.Grey : '#333333')
+                .decoration({ type: this.todo1Done === '1' ? TextDecorationType.LineThrough : TextDecorationType.None })
                 .maxLines(1)
                 .textOverflow({ overflow: TextOverflow.Ellipsis })
                 .layoutWeight(1)
             }
             .width('100%')
+            .hitTestBehavior(HitTestMode.Block)
             .onClick(() => {
               this.toggleCard(this.todo1Id);
             })
           }
           if (this.todo2Text !== '') {
             Row({ space: 6 }) {
-              Checkbox()
-                .select(this.todo2Done === '1')
-                .width(16)
-                .height(16)
-                .selectedColor('#007DFF')
               Text(this.todo2Text)
                 .fontSize(13)
-                .fontColor('#333333')
+                .fontColor(this.todo2Done === '1' ? Color.Grey : '#333333')
+                .decoration({ type: this.todo2Done === '1' ? TextDecorationType.LineThrough : TextDecorationType.None })
                 .maxLines(1)
                 .textOverflow({ overflow: TextOverflow.Ellipsis })
                 .layoutWeight(1)
             }
             .width('100%')
+            .hitTestBehavior(HitTestMode.Block)
             .onClick(() => {
               this.toggleCard(this.todo2Id);
             })
@@ -124,14 +127,14 @@ struct WidgetCard {
           .fontSize(13)
           .fontColor(Color.Grey)
           .margin({ top: 16 })
-          .onClick(() => {
-            this.openApp();
-          })
       }
     }
     .width('100%')
     .height('100%')
     .padding(12)
     .alignItems(HorizontalAlign.Start)
+    .onClick(() => {
+      this.openApp();
+    })
   }
 }

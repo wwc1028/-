@@ -1,5 +1,11 @@
 import { preferences } from '@kit.ArkData';
 import { Context } from '@kit.AbilityKit';
+import { formBindingData, formProvider } from '@kit.FormKit';
+import { BusinessError } from '@kit.BasicServicesKit';
+import { hilog } from '@kit.PerformanceAnalysisKit';
+
+const CARD_DOMAIN = 0x0001;
+const CARD_TAG = 'TodoStore';
 
 export class TodoData {
   id: number;
@@ -24,7 +30,8 @@ export class TodoStore {
   private static readonly KEY_TODOS: string = 'todo_list';
   private static readonly KEY_FORM_IDS: string = 'form_ids';
 
-  private static getStore(context: Context): Promise<preferences.Preferences> {
+  private static async getStore(context: Context): Promise<preferences.Preferences> {
+    await preferences.removePreferencesFromCache(context, TodoStore.STORE_NAME);
     return preferences.getPreferences(context, TodoStore.STORE_NAME);
   }
 
@@ -161,5 +168,20 @@ export class TodoStore {
       data[`todo${i}Done`] = item.done ? '1' : '0';
     }
     return data;
+  }
+
+  static refreshAllCards(context: Context, todos: TodoData[]): Promise<void> {
+    const data = formBindingData.createFormBindingData(TodoStore.buildCardData(todos));
+    return TodoStore.loadFormIds(context).then((formIds: string[]) => {
+      const updates: Promise<void>[] = [];
+      for (const formId of formIds) {
+        updates.push(
+          formProvider.updateForm(formId, data).catch((error: BusinessError) => {
+            hilog.error(CARD_DOMAIN, CARD_TAG, 'updateForm error: %{public}s', JSON.stringify(error));
+          })
+        );
+      }
+      return Promise.all(updates).then(() => {});
+    });
   }
 }

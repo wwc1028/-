@@ -1,5 +1,4 @@
 import { hilog } from '@kit.PerformanceAnalysisKit';
-import { formProvider, formBindingData } from '@kit.FormKit';
 import { BusinessError } from '@kit.BasicServicesKit';
 import { Context } from '@kit.AbilityKit';
 import { TodoData, TodoStore } from '../model/TodoModel';
@@ -14,6 +13,14 @@ struct Index {
   @State inputText: string = '';
 
   aboutToAppear() {
+    this.loadTodos();
+  }
+
+  onPageShow() {
+    this.loadTodos();
+  }
+
+  private loadTodos() {
     TodoStore.loadTodos(getContext(this)).then((todos: TodoData[]) => {
       this.todoList = todos;
     }).catch((error: BusinessError) => {
@@ -24,14 +31,7 @@ struct Index {
   private persistAndRefreshCards() {
     const context: Context = getContext(this);
     TodoStore.saveTodos(context, this.todoList).then(() => {
-      return TodoStore.loadFormIds(context);
-    }).then((formIds: string[]) => {
-      const data = formBindingData.createFormBindingData(TodoStore.buildCardData(this.todoList));
-      for (const formId of formIds) {
-        formProvider.updateForm(formId, data).catch((error: BusinessError) => {
-          hilog.error(DOMAIN, TAG, 'updateForm error: %{public}s', JSON.stringify(error));
-        });
-      }
+      return TodoStore.refreshAllCards(context, this.todoList);
     }).catch((error: BusinessError) => {
       hilog.error(DOMAIN, TAG, 'persist error: %{public}s', JSON.stringify(error));
     });

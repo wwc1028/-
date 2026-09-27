@@ -1,4 +1,4 @@
-import { FormExtensionAbility, formBindingData, formInfo, formProvider } from '@kit.FormKit';
+import { FormExtensionAbility, formBindingData, formInfo } from '@kit.FormKit';
 import { Want } from '@kit.AbilityKit';
 import { hilog } from '@kit.PerformanceAnalysisKit';
 import { BusinessError } from '@kit.BasicServicesKit';
@@ -8,7 +8,6 @@ const DOMAIN = 0x0000;
 const TAG = 'EntryFormAbility';
 
 interface CardAction {
-  action: string;
   todoId: string;
 }
 
@@ -38,10 +37,13 @@ export default class EntryFormAbility extends FormExtensionAbility {
       hilog.error(DOMAIN, TAG, 'invalid message: %{public}s', message);
       return;
     }
-    if (action === null || action.action !== 'toggle' || typeof action.todoId !== 'string') {
+    if (action === null || action === undefined || typeof action.todoId !== 'string' || action.todoId === '') {
       return;
     }
     const todoId: number = Number(action.todoId);
+    if (Number.isNaN(todoId)) {
+      return;
+    }
     TodoStore.loadTodos(this.context).then((todos: TodoData[]) => {
       const next = TodoStore.toggleDone(todos, todoId);
       return TodoStore.saveTodos(this.context, next).then(() => {
@@ -61,18 +63,7 @@ export default class EntryFormAbility extends FormExtensionAbility {
 
   private updateAllCards(): Promise<void> {
     return TodoStore.loadTodos(this.context).then((todos: TodoData[]) => {
-      const data = formBindingData.createFormBindingData(TodoStore.buildCardData(todos));
-      return TodoStore.loadFormIds(this.context).then((formIds: string[]) => {
-        const updates: Promise<void>[] = [];
-        for (const formId of formIds) {
-          updates.push(
-            formProvider.updateForm(formId, data).catch((error: BusinessError) => {
-              hilog.error(DOMAIN, TAG, 'updateForm error: %{public}s', JSON.stringify(error));
-            })
-          );
-        }
-        return Promise.all(updates).then(() => {});
-      });
+      return TodoStore.refreshAllCards(this.context, todos);
     });
   }
 }
