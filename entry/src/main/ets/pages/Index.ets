@@ -9,7 +9,9 @@ const TAG = 'TodoIndex';
 @Entry
 @Component
 struct Index {
-  @State todoList: TodoData[] = [];
+  @State pendingList: TodoData[] = [];
+  @State completedList: TodoData[] = [];
+  @State showCompleted: boolean = true;
   @State inputText: string = '';
 
   aboutToAppear() {
@@ -22,7 +24,17 @@ struct Index {
 
   private loadTodos() {
     TodoStore.loadTodos(getContext(this)).then((todos: TodoData[]) => {
-      this.todoList = todos;
+      const pending: TodoData[] = [];
+      const completed: TodoData[] = [];
+      for (const item of todos) {
+        if (item.done) {
+          completed.push(item);
+        } else {
+          pending.push(item);
+        }
+      }
+      this.pendingList = pending;
+      this.completedList = completed;
     }).catch((error: BusinessError) => {
       hilog.error(DOMAIN, TAG, 'loadTodos error: %{public}s', JSON.stringify(error));
     });
@@ -30,8 +42,9 @@ struct Index {
 
   private persistAndRefreshCards() {
     const context: Context = getContext(this);
-    TodoStore.saveTodos(context, this.todoList).then(() => {
-      return TodoStore.refreshAllCards(context, this.todoList);
+    const todos: TodoData[] = this.pendingList.concat(this.completedList);
+    TodoStore.saveTodos(context, todos).then(() => {
+      return TodoStore.refreshAllCards(context, todos);
     }).catch((error: BusinessError) => {
       hilog.error(DOMAIN, TAG, 'persist error: %{public}s', JSON.stringify(error));
     });
@@ -43,25 +56,87 @@ struct Index {
       return;
     }
     const todo = new TodoData(Date.now(), text, false);
-    this.todoList = [todo].concat(this.todoList);
+    this.pendingList = [todo].concat(this.pendingList);
     this.inputText = '';
     this.persistAndRefreshCards();
   }
 
   private toggleTodo(id: number) {
-    this.todoList = TodoStore.toggleDone(this.todoList, id);
+    const pendingNext: TodoData[] = [];
+    const completedNext: TodoData[] = [];
+    for (const item of this.pendingList) {
+      if (item.id === id) {
+        completedNext.push(new TodoData(item.id, item.text, true));
+      } else {
+        pendingNext.push(item);
+      }
+    }
+    for (const item of this.completedList) {
+      if (item.id === id) {
+        pendingNext.push(new TodoData(item.id, item.text, false));
+      } else {
+        completedNext.push(item);
+      }
+    }
+    this.pendingList = pendingNext;
+    this.completedList = completedNext;
     this.persistAndRefreshCards();
   }
 
   private removeTodo(id: number) {
-    const next: TodoData[] = [];
-    for (const item of this.todoList) {
+    const pendingNext: TodoData[] = [];
+    const completedNext: TodoData[] = [];
+    for (const item of this.pendingList) {
       if (item.id !== id) {
-        next.push(item);
+        pendingNext.push(item);
       }
     }
-    this.todoList = next;
+    for (const item of this.completedList) {
+      if (item.id !== id) {
+        completedNext.push(item);
+      }
+    }
+    this.pendingList = pendingNext;
+    this.completedList = completedNext;
     this.persistAndRefreshCards();
+  }
+
+  private clearCompleted() {
+    this.completedList = [];
+    this.persistAndRefreshCards();
+  }
+
+  @Builder
+  private TodoItemRow(item: TodoData) {
+    Row({ space: 10 }) {
+      Checkbox()
+        .select(item.done)
+        .width(22)
+        .height(22)
+        .selectedColor('#007DFF')
+        .onChange((value: boolean) => {
+          if (value !== item.done) {
+            this.toggleTodo(item.id);
+          }
+        })
+      Text(item.text)
+        .layoutWeight(1)
+        .fontSize(16)
+        .maxLines(1)
+        .textOverflow({ overflow: TextOverflow.Ellipsis })
+        .fontColor(item.done ? Color.Grey : '#333333')
+      Text('✕')
+        .fontSize(16)
+        .fontColor('#CCCCCC')
+        .padding({ left: 8, right: 4, top: 4, bottom: 4 })
+        .onClick(() => {
+          this.removeTodo(item.id);
+        })
+    }
+    .width('100%')
+    .padding(14)
+    .borderRadius(14)
+    .backgroundColor('#FFFFFF')
   }
 
   build() {
@@ -72,7 +147,7 @@ struct Index {
           .fontWeight(FontWeight.Bold)
           .fontColor('#333333')
           .layoutWeight(1)
-        Text(`${this.todoList.length} 项`)
+        Text(`${this.pendingList.length} 项`)
           .fontSize(14)
           .fontColor(Color.Grey)
       }
@@ -101,60 +176,76 @@ struct Index {
       .width('100%')
       .margin({ top: 16 })
 
-      if (this.todoList.length === 0) {
+      Scroll() {
         Column() {
-          Text('暂无待办事项')
-            .fontSize(16)
-            .fontColor(Color.Grey)
-            .margin({ bottom: 8 })
-          Text('在上方输入框添加第一条待办吧')
-            .fontSize(13)
-            .fontColor('#BBBBBB')
-        }
-        .width('100%')
-        .layoutWeight(1)
-        .justifyContent(FlexAlign.Center)
-      } else {
-        List({ space: 10 }) {
-          ForEach(this.todoList, (item: TodoData) => {
-            ListItem() {
-              Row({ space: 10 }) {
-                Checkbox()
-                  .select(item.done)
-                  .width(22)
-                  .height(22)
-                  .selectedColor('#007DFF')
-                  .onChange((value: boolean) => {
-                    if (value !== item.done) {
-                      this.toggleTodo(item.id);
-                    }
-                  })
-                Text(item.text)
-                  .layoutWeight(1)
-                  .fontSize(16)
-                  .maxLines(1)
-                  .textOverflow({ overflow: TextOverflow.Ellipsis })
-                  .decoration({ type: item.done ? TextDecorationType.LineThrough : TextDecorationType.None })
-                  .fontColor(item.done ? Color.Grey : '#333333')
-                Text('✕')
-                  .fontSize(16)
-                  .fontColor('#CCCCCC')
-                  .padding({ left: 8, right: 4, top: 4, bottom: 4 })
-                  .onClick(() => {
-                    this.removeTodo(item.id);
-                  })
+          if (this.pendingList.length === 0) {
+            Column() {
+              Text('暂无待办事项')
+                .fontSize(16)
+                .fontColor(Color.Grey)
+                .margin({ bottom: 8 })
+              Text('在上方输入框添加第一条待办吧')
+                .fontSize(13)
+                .fontColor('#BBBBBB')
+            }
+            .width('100%')
+            .margin({ top: 40 })
+          } else {
+            Column({ space: 10 }) {
+              ForEach(this.pendingList, (item: TodoData) => {
+                this.TodoItemRow(item)
+              }, (item: TodoData): string => item.id.toString())
+            }
+            .width('100%')
+            .margin({ top: 16 })
+          }
+
+          if (this.completedList.length > 0) {
+            Row() {
+              Text('已完成')
+                .fontSize(18)
+                .fontWeight(FontWeight.Bold)
+                .fontColor('#333333')
+              Text(`${this.completedList.length} 项`)
+                .fontSize(13)
+                .fontColor(Color.Grey)
+                .margin({ left: 8 })
+              Blank()
+              Text('清空')
+                .fontSize(13)
+                .fontColor('#FF4D4F')
+                .padding({ left: 8, top: 4, bottom: 4 })
+                .onClick(() => {
+                  this.clearCompleted();
+                })
+              Text(this.showCompleted ? '收起' : '展开')
+                .fontSize(13)
+                .fontColor('#007DFF')
+                .padding({ left: 12, top: 4, bottom: 4 })
+                .onClick(() => {
+                  this.showCompleted = !this.showCompleted;
+                })
+            }
+            .width('100%')
+            .margin({ top: 24, bottom: 10 })
+
+            if (this.showCompleted) {
+              Column({ space: 10 }) {
+                ForEach(this.completedList, (item: TodoData) => {
+                  this.TodoItemRow(item)
+                }, (item: TodoData): string => item.id.toString())
               }
               .width('100%')
-              .padding(14)
-              .borderRadius(14)
-              .backgroundColor('#FFFFFF')
             }
-          }, (item: TodoData): string => item.id.toString())
+          }
         }
-        .layoutWeight(1)
         .width('100%')
-        .margin({ top: 16 })
       }
+      .layoutWeight(1)
+      .width('100%')
+      .margin({ top: 16 })
+      .scrollBar(BarState.Off)
+      .align(Alignment.Top)
     }
     .width('100%')
     .height('100%')
